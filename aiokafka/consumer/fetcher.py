@@ -217,7 +217,7 @@ class PartitionRecords:
 
             if self._isolation_level == READ_COMMITTED and \
                     next_batch.producer_id is not None:
-                self._consume_aborted_up_to(next_batch.base_offset)
+                self._consume_aborted_up_to(next_batch.next_offset - 1)
 
                 if next_batch.is_control_batch:
                     if self._contains_abort_marker(next_batch):
