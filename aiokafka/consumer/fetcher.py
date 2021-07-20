@@ -220,7 +220,8 @@ class PartitionRecords:
                 self._consume_aborted_up_to(next_batch.next_offset - 1)
 
                 if next_batch.is_control_batch:
-                    if self._contains_abort_marker(next_batch):
+                    if self._contains_abort_marker(next_batch) and \
+                            next_batch.producer_id in self._aborted_producers:
                         self._aborted_producers.remove(next_batch.producer_id)
 
                 if next_batch.is_transactional and \
