@@ -27,7 +27,7 @@ from .subscription_state import SubscriptionState
 log = logging.getLogger(__name__)
 
 
-class AIOKafkaConsumer(object):
+class AIOKafkaConsumer:
     """
     A client that consumes records from a Kafka cluster.
 
@@ -163,7 +163,8 @@ class AIOKafkaConsumer(object):
             If set to 'auto', will attempt to infer the broker version by
             probing various APIs. Default: auto
         security_protocol (str): Protocol used to communicate with brokers.
-            Valid values are: PLAINTEXT, SSL. Default: PLAINTEXT.
+            Valid values are: PLAINTEXT, SSL, SASL_PLAINTEXT, SASL_SSL.
+            Default: PLAINTEXT.
         ssl_context (ssl.SSLContext): pre-configured SSLContext for wrapping
             socket connections. Directly passed into asyncio's
             `create_connection`_. For more information see :ref:`ssl_auth`.
@@ -322,7 +323,7 @@ class AIOKafkaConsumer(object):
 
     def __del__(self, _warnings=warnings):
         if self._closed is False:
-            _warnings.warn("Unclosed AIOKafkaConsumer {!r}".format(self),
+            _warnings.warn(f"Unclosed AIOKafkaConsumer {self!r}",
                            ResourceWarning,
                            source=self)
             context = {'consumer': self,
@@ -346,8 +347,9 @@ class AIOKafkaConsumer(object):
         await self._wait_topics()
 
         if self._client.api_version < (0, 9):
-            raise ValueError("Unsupported Kafka version: {}".format(
-                self._client.api_version))
+            raise ValueError(
+                f"Unsupported Kafka version: {self._client.api_version}"
+            )
 
         if self._isolation_level == "read_committed" and \
                 self._client.api_version < (0, 11):
@@ -549,7 +551,7 @@ class AIOKafkaConsumer(object):
             for tp in offsets:
                 if tp not in assignment.tps:
                     raise IllegalStateError(
-                        "Partition {} is not assigned".format(tp))
+                        f"Partition {tp} is not assigned")
 
         await self._coordinator.commit_offsets(assignment, offsets)
 
@@ -630,7 +632,7 @@ class AIOKafkaConsumer(object):
         while True:
             if not self._subscription.is_assigned(partition):
                 raise IllegalStateError(
-                    'Partition {} is not assigned'.format(partition))
+                    f'Partition {partition} is not assigned')
 
             assignment = self._subscription.subscription.assignment
             tp_state = assignment.state_value(partition)
@@ -645,7 +647,7 @@ class AIOKafkaConsumer(object):
                 if not tp_state.has_valid_position:
                     if self._subscription.subscription is None:
                         raise IllegalStateError(
-                            'Partition {} is not assigned'.format(partition))
+                            f'Partition {partition} is not assigned')
                     if self._subscription.subscription.assignment is None:
                         self._coordinator.check_errors()
                         await self._subscription.wait_for_assignment()
@@ -772,7 +774,7 @@ class AIOKafkaConsumer(object):
             )
             if not_assigned:
                 raise IllegalStateError(
-                    "Partitions {} are not assigned".format(not_assigned))
+                    f"Partitions {not_assigned} are not assigned")
 
         for tp in partitions:
             log.debug("Seeking to beginning of partition %s", tp)
@@ -814,7 +816,7 @@ class AIOKafkaConsumer(object):
             )
             if not_assigned:
                 raise IllegalStateError(
-                    "Partitions {} are not assigned".format(not_assigned))
+                    f"Partitions {not_assigned} are not assigned")
 
         for tp in partitions:
             log.debug("Seeking to end of partition %s", tp)
@@ -861,7 +863,7 @@ class AIOKafkaConsumer(object):
             )
             if not_assigned:
                 raise IllegalStateError(
-                    "Partitions {} are not assigned".format(not_assigned))
+                    f"Partitions {not_assigned} are not assigned")
 
         committed_offsets = {}
         for tp in partitions:
@@ -909,14 +911,16 @@ class AIOKafkaConsumer(object):
         """
         if self._client.api_version <= (0, 10, 0):
             raise UnsupportedVersionError(
-                "offsets_for_times API not supported for cluster version {}"
-                .format(self._client.api_version))
+                "offsets_for_times API not supported"
+                f" for cluster version {self._client.api_version}"
+            )
         for tp, ts in timestamps.items():
             timestamps[tp] = int(ts)
             if ts < 0:
                 raise ValueError(
-                    "The target time for partition {} is {}. The target time "
-                    "cannot be negative.".format(tp, ts))
+                    f"The target time for partition {tp} is {ts}."
+                    " The target time cannot be negative."
+                )
         offsets = await self._fetcher.get_offsets_by_times(
             timestamps, self._request_timeout_ms)
         return offsets
@@ -948,8 +952,9 @@ class AIOKafkaConsumer(object):
         """
         if self._client.api_version <= (0, 10, 0):
             raise UnsupportedVersionError(
-                "offsets_for_times API not supported for cluster version {}"
-                .format(self._client.api_version))
+                "offsets_for_times API not supported"
+                f" for cluster version {self._client.api_version}"
+            )
         offsets = await self._fetcher.beginning_offsets(
             partitions, self._request_timeout_ms)
         return offsets
@@ -983,8 +988,9 @@ class AIOKafkaConsumer(object):
         """
         if self._client.api_version <= (0, 10, 0):
             raise UnsupportedVersionError(
-                "offsets_for_times API not supported for cluster version {}"
-                .format(self._client.api_version))
+                "offsets_for_times API not supported"
+                f" for cluster version {self._client.api_version}"
+            )
         offsets = await self._fetcher.end_offsets(
             partitions, self._request_timeout_ms)
         return offsets
@@ -1044,7 +1050,7 @@ class AIOKafkaConsumer(object):
                 pattern = re.compile(pattern)
             except re.error as err:
                 raise ValueError(
-                    "{!r} is not a valid pattern: {}".format(pattern, err))
+                    f"{pattern!r} is not a valid pattern: {err}")
             self._subscription.subscribe_pattern(
                 pattern=pattern, listener=listener)
             # NOTE: set_topics will trigger a rebalance, so the coordinator
