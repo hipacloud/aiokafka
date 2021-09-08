@@ -119,7 +119,7 @@ extras_require = {
 
 
 def read_version():
-    regexp = re.compile(r"^__version__\W*=\W*'([\d.abrcdev]+)'")
+    regexp = re.compile(r"^__version__\W*=\W*'([\d.abrcdev\-p]+)'")
     init_py = os.path.join(os.path.dirname(__file__), "aiokafka", "__init__.py")
     with open(init_py) as f:
         for line in f:
