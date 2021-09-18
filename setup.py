@@ -99,7 +99,7 @@ class ve_build_ext(build_ext):
 
 
 install_requires = [
-    "cython>=0.29.24",
+    "cython==0.29.24",
     "kafka-python>=2.0.0",
     "dataclasses>=0.5; python_version<'3.7'",
 ]
